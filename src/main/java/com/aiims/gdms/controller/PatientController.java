@@ -181,4 +181,17 @@ public class PatientController {
             return new ResponseEntity<Object>(e.getMessage(), HttpStatus.BAD_REQUEST);
          }
         }
+    
+    
+    @PostMapping("/patient-full-logs")
+    public ResponseEntity<ApiResponse<PatientLogsResponse>> getPatientLogsById(@RequestBody Long patientId) {
+        try {
+            PatientLogsResponse logs = patientService.getPatientLogs(patientId);
+            return ResponseEntity.ok(ApiResponse.success("Patient logs fetched successfully", logs));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Failed to fetch patient logs: " + e.getMessage()));
+        }
+    }
+
+    
 } 

@@ -1,5 +1,7 @@
 package com.aiims.gdms.entity;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 
@@ -46,6 +48,9 @@ public class PatientProfile {
     
     @Column
     private Integer lastMenstrualPeriod;
+    
+    @Column
+    private String photoPath;
 
     
     // Constructors
@@ -163,6 +168,14 @@ public class PatientProfile {
 
 	public void setLastMenstrualPeriod(Integer lastMenstrualPeriod) {
 		this.lastMenstrualPeriod = lastMenstrualPeriod;
+	}
+	
+	public String getPhotoPath() {
+	    return photoPath;
+	}
+
+	public void setPhotoPath(String photoPath) {
+	    this.photoPath = photoPath;
 	}
 
 

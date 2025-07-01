@@ -1,9 +1,15 @@
 package com.aiims.gdms.service;
 
+import com.aiims.gdms.dto.GlucoseLogDto;
+import com.aiims.gdms.dto.KickCountLogDto;
+import com.aiims.gdms.dto.MealItemDto;
 import com.aiims.gdms.dto.MealItemRequest;
+import com.aiims.gdms.dto.MealLogDto;
 import com.aiims.gdms.dto.MealLogRequest;
 import com.aiims.gdms.dto.NotificationResponse;
+import com.aiims.gdms.dto.PatientLogsResponse;
 import com.aiims.gdms.dto.PatientResponseDto;
+import com.aiims.gdms.dto.SymptomLogDto;
 import com.aiims.gdms.dto.SymptomLogRequest;
 import com.aiims.gdms.entity.*;
 import com.aiims.gdms.entity.MealMaster.MealType;
@@ -16,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class PatientService {
@@ -257,4 +264,76 @@ public class PatientService {
 			
 		
 	}
+	
+	
+	
+	public PatientLogsResponse getPatientLogs(Long patientId) {
+
+	    User patient = userRepository.findById(patientId)
+	            .orElseThrow(() -> new RuntimeException("User not found with ID: " + patientId));
+
+	    PatientLogsResponse response = new PatientLogsResponse();
+
+	    // Kick Counts
+	    List<KickCountLogDto> kickCounts = kickSessionRepository.findByPatientOrderByStartTimeDesc(patient)
+	            .stream()
+	            .map(session -> new KickCountLogDto(
+	                    session.getStartTime(),
+	                    session.getEndTime(),
+	                    kickEventRepository.findBySession(session).size()
+	            ))
+	            .collect(Collectors.toList());
+	    response.setKickCounts(kickCounts);
+
+
+	    // Meal Logs
+	    List<MealLogDto> meals = mealLogRepository.findByPatient(patient)
+	            .stream()
+	            .map(meal -> new MealLogDto(
+	                    meal.getMealType().name(),
+	                    meal.getMealItems().stream()
+	                            .map(item -> new MealItemDto(
+	                                    item.getCustomMealName() != null ? item.getCustomMealName()
+	                                            : (item.getMealMaster() != null ? item.getMealMaster().getName() : null),
+	                                    item.getQuantity(),
+	                                    item.getUnit(),
+	                                    item.getMealMaster() != null && item.getMealMaster().getMealType() != null
+	                                            ? item.getMealMaster().getMealType().name()
+	                                            : null,
+	                                    item.getMealMaster() != null ? item.getMealMaster().getCarbs() : null,
+	                                    item.getMealMaster() != null && item.getMealMaster().isDoctorRecommended()
+	                            ))
+	                            .collect(Collectors.toList())
+	            ))
+	            .collect(Collectors.toList());
+	    response.setMeals(meals);
+
+
+	    // Glucose Logs
+	    List<GlucoseLogDto> glucoseLogs = glucoseLogRepository.findByPatient(patient)
+	            .stream()
+	            .map(glucose -> new GlucoseLogDto(
+	                    glucose.getGlucoseLevel(),
+	                    glucose.getReadingType().name()
+	            ))
+	            .collect(Collectors.toList());
+	    response.setGlucoseLogs(glucoseLogs);
+
+
+	    // Symptom Logs
+	    List<SymptomLogDto> symptomLogs = symptomLogRepository.findByPatient(patient)
+	            .stream()
+	            .map(symptom -> new SymptomLogDto(
+	                    symptom.getSymptoms(),
+	                    symptom.getSeverity(),
+	                    symptom.isNoSymptoms(),
+	                    symptom.getNotes()
+	            ))
+	            .collect(Collectors.toList());
+	    response.setSymptomLogs(symptomLogs);
+
+	    return response;
+	}
+
+	
 } 

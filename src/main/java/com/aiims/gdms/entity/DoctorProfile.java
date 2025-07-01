@@ -35,6 +35,9 @@ public class DoctorProfile {
     @Column
     private String email;
     
+    @Column
+    private String photoPath;
+    
     // Constructors
     public DoctorProfile() {}
     
@@ -108,4 +111,13 @@ public class DoctorProfile {
     public void setEmail(String email) {
         this.email = email;
     }
+    
+    public String getPhotoPath() {
+	    return photoPath;
+	}
+
+	public void setPhotoPath(String photoPath) {
+	    this.photoPath = photoPath;
+	}
+    
 } 

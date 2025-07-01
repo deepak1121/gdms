@@ -51,31 +51,48 @@ public class AuthService implements UserDetailsService {
         return user;
     }
     
-    public AuthResponse register(AuthRequest request) {
+    
+    
+    
+    public AuthResponse register(AuthRequest request, String photoPath) {
+
         if (userRepository.existsByUsername(request.getUsername())) {
             return new AuthResponse("Username already exists");
         }
-        
+
         User.Role role = User.Role.valueOf(request.getRole().toUpperCase());
         User user = new User();
         user.setUsername(request.getUsername());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(role);
-        
+
         user = userRepository.save(user);
-        
-        // Create profile based on role
+
         if (role == User.Role.PATIENT) {
-            PatientProfile profile = new PatientProfile(user, request.getFirstName(), request.getLastName(), request.getPhoneNumber(), request.getBirthYear(), request.getGravida(), request.getPara(), request.getLivingChildren(), request.getAbortions(), request.getLastMenstrualPeriod());
+            PatientProfile profile = new PatientProfile(user, request.getFirstName(), request.getLastName(),
+                    request.getPhoneNumber(), request.getBirthYear(), request.getGravida(),
+                    request.getPara(), request.getLivingChildren(), request.getAbortions(),
+                    request.getLastMenstrualPeriod());
+
+            if (photoPath != null) {
+                profile.setPhotoPath(photoPath);
+            }
+
             patientProfileRepository.save(profile);
+
         } else if (role == User.Role.DOCTOR) {
             DoctorProfile profile = new DoctorProfile(user, request.getFirstName(), request.getLastName());
+
+            if (photoPath != null) {
+                profile.setPhotoPath(photoPath);  // Optional if DoctorProfile has photoPath
+            }
+
             doctorProfileRepository.save(profile);
         }
-        
+
         return new AuthResponse("You have register successful");
     }
-    
+
     public AuthResponse login(AuthRequest request) {
         try {
             authenticationManager.authenticate(
