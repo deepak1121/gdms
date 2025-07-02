@@ -267,16 +267,14 @@ public class PatientService {
 	
 	
 	
-	public PatientLogsResponse getPatientLogs(Long patientId) {
-
-	    User patient = userRepository.findById(patientId)
-	            .orElseThrow(() -> new RuntimeException("User not found with ID: " + patientId));
+	public PatientLogsResponse getPatientLogs(User patient, String date) {
 
 	    PatientLogsResponse response = new PatientLogsResponse();
 
 	    // Kick Counts
 	    List<KickCountLogDto> kickCounts = kickSessionRepository.findByPatientOrderByStartTimeDesc(patient)
 	            .stream()
+	            .filter(session -> isSameDate(session.getStartTime(), date))
 	            .map(session -> new KickCountLogDto(
 	                    session.getStartTime(),
 	                    session.getEndTime(),
@@ -285,10 +283,10 @@ public class PatientService {
 	            .collect(Collectors.toList());
 	    response.setKickCounts(kickCounts);
 
-
 	    // Meal Logs
 	    List<MealLogDto> meals = mealLogRepository.findByPatient(patient)
 	            .stream()
+	            .filter(meal -> isSameDate(meal.getTimestamp(), date))
 	            .map(meal -> new MealLogDto(
 	                    meal.getMealType().name(),
 	                    meal.getMealItems().stream()
@@ -308,10 +306,10 @@ public class PatientService {
 	            .collect(Collectors.toList());
 	    response.setMeals(meals);
 
-
 	    // Glucose Logs
 	    List<GlucoseLogDto> glucoseLogs = glucoseLogRepository.findByPatient(patient)
 	            .stream()
+	            .filter(glucose -> isSameDate(glucose.getTimestamp(), date))
 	            .map(glucose -> new GlucoseLogDto(
 	                    glucose.getGlucoseLevel(),
 	                    glucose.getReadingType().name()
@@ -319,10 +317,10 @@ public class PatientService {
 	            .collect(Collectors.toList());
 	    response.setGlucoseLogs(glucoseLogs);
 
-
 	    // Symptom Logs
 	    List<SymptomLogDto> symptomLogs = symptomLogRepository.findByPatient(patient)
 	            .stream()
+	            .filter(symptom -> isSameDate(symptom.getTimestamp(), date))
 	            .map(symptom -> new SymptomLogDto(
 	                    symptom.getSymptoms(),
 	                    symptom.getSeverity(),
@@ -334,6 +332,19 @@ public class PatientService {
 
 	    return response;
 	}
+	
+	
+	private boolean isSameDate(LocalDateTime timestamp, String date) {
+	    if (date == null || date.isBlank()) {
+	        return true; // If no date provided, include all logs
+	    }
+	    date = date.trim(); // Remove trailing spaces or line breaks
+	    LocalDate targetDate = LocalDate.parse(date);
+	    return timestamp.toLocalDate().isEqual(targetDate);
+	}
+
+
+
 
 	
 } 

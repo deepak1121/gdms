@@ -47,7 +47,7 @@ public class PatientController {
         }
 
     
-    @PostMapping("/glucose")
+    @PostMapping("/add-glucose-logs")
     public ResponseEntity<ApiResponse<GlucoseLogResponse>> logGlucose(@AuthenticationPrincipal UserDetails userDetails,
                                                                       @Valid @RequestBody GlucoseLogRequest request) {
         String username = userDetails.getUsername();
@@ -94,7 +94,7 @@ public class PatientController {
         }
     }
     
-    @GetMapping("/glucose")
+    @GetMapping("/get-glucose-logs")
     public ResponseEntity<ApiResponse<List<GlucoseLogResponse>>> getGlucoseLogs(@AuthenticationPrincipal UserDetails userDetails) {
         String username = userDetails.getUsername();
         User patient = userRepository.findByUsername(username)
@@ -184,14 +184,26 @@ public class PatientController {
     
     
     @PostMapping("/patient-full-logs")
-    public ResponseEntity<ApiResponse<PatientLogsResponse>> getPatientLogsById(@RequestBody Long patientId) {
+    public ResponseEntity<ApiResponse<PatientLogsResponse>> getPatientLogsById(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody(required = false) String date) {  // Optional date parameter
+
         try {
-            PatientLogsResponse logs = patientService.getPatientLogs(patientId);
+            User patient = userRepository.findByUsername(userDetails.getUsername())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            if (patient.getRole() != User.Role.PATIENT) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("Only patients can view their logs"));
+            }
+
+            PatientLogsResponse logs = patientService.getPatientLogs(patient, date);
             return ResponseEntity.ok(ApiResponse.success("Patient logs fetched successfully", logs));
+
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("Failed to fetch patient logs: " + e.getMessage()));
         }
     }
+
 
     
 } 

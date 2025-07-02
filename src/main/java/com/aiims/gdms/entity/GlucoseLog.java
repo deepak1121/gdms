@@ -34,7 +34,7 @@ public class GlucoseLog {
     private String notes;
     
     public enum ReadingType {
-        FASTING, POST_BREAKFAST, POST_LUNCH, POST_DINNER, BEDTIME
+        FASTING, POST_MEAL
     }
     
     // Constructors
