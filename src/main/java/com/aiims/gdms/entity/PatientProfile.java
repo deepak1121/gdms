@@ -1,7 +1,5 @@
 package com.aiims.gdms.entity;
 
-import org.springframework.web.multipart.MultipartFile;
-
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 
@@ -28,7 +26,7 @@ public class PatientProfile {
     
     
     @Column
-    private Long phoneNumber;
+    private String phoneNumber;
     
     
     @Column
@@ -63,7 +61,7 @@ public class PatientProfile {
     }
     
     
-    public PatientProfile(User user, String firstName, String lastName, Long phoneNumber,
+    public PatientProfile(User user, String firstName, String lastName, String phoneNumber,
 		    Integer birthYear, Integer gravida, Integer para, Integer livingChildren,
 			Integer abortions, Integer lastMenstrualPeriod) {
 		this.user = user;
@@ -113,11 +111,11 @@ public class PatientProfile {
     
 
     
-    public Long getPhoneNumber() {
+    public String getPhoneNumber() {
         return phoneNumber;
     }
     
-    public void setPhoneNumber(Long phoneNumber) {
+    public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
     }
       

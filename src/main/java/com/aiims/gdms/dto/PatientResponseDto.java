@@ -8,7 +8,7 @@ public class PatientResponseDto {
     private String username;
     private String firstName;
     private String lastName;
-    private Long phoneNumber;
+    private String phoneNumber;
     private Integer birthYear;
     private Integer gravida;
     private Integer para;
@@ -21,7 +21,7 @@ public class PatientResponseDto {
     public PatientResponseDto() {
     }
 
-    public PatientResponseDto(Long id, String firstName, String lastName, Long phoneNumber, Integer birthYear,Integer gravida, Integer para, Integer livingChildren,
+    public PatientResponseDto(Long id, String firstName, String lastName, String phoneNumber, Integer birthYear,Integer gravida, Integer para, Integer livingChildren,
 			Integer abortions, Integer lastMenstrualPeriod) {
         this.id = id;
         this.firstName = firstName;
@@ -68,11 +68,11 @@ public class PatientResponseDto {
         this.lastName = lastName;
     }
 
-    public Long getPhoneNumber() {
+    public String getPhoneNumber() {
         return phoneNumber;
     }
 
-    public void setPhoneNumber(Long phoneNumber) {
+    public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
     }
 

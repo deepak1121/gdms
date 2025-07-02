@@ -22,7 +22,7 @@ public class AuthRequest {
 
 	// Additional fields for registration
 	@NotNull(message = "Phone number is required")
-	private Long phoneNumber;
+	private String phoneNumber;
 
 	@NotBlank
 	private String firstName;
@@ -138,11 +138,11 @@ public class AuthRequest {
 		this.lastName = lastName;
 	}
 
-	public Long getPhoneNumber() {
+	public String getPhoneNumber() {
 		return phoneNumber;
 	}
 
-	public void setPhoneNumber(Long phoneNumber) {
+	public void setPhoneNumber(String phoneNumber) {
 		this.phoneNumber = phoneNumber;
 	}
 
