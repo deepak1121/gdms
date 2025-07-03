@@ -40,6 +40,7 @@ public class AuthController {
 
         try {
             String decryptedUsername = AESGCMDecryption.decrypt(request.getUsername());
+            
             String decryptedPassword = AESGCMDecryption.decrypt(request.getPassword());
             String decryptedPhoneNumber = AESGCMDecryption.decrypt(request.getPhoneNumber());
 

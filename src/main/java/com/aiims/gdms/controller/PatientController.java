@@ -206,4 +206,15 @@ public class PatientController {
 
 
     
+    
+    @PostMapping("/meals-by-type")
+    public ResponseEntity<ApiResponse<List<MealMaster>>> getMealsByType(@RequestBody MealTypeRequest request) {
+        try {
+            List<MealMaster> meals = mealMasterService.getMealsByType(request);
+            return ResponseEntity.ok(ApiResponse.success("Meal list fetched successfully", meals));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Failed to fetch meals: " + e.getMessage()));
+        }
+    }
+    
 } 
