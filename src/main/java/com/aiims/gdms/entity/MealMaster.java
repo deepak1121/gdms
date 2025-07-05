@@ -24,7 +24,7 @@ public class MealMaster {
     @Enumerated(EnumType.STRING)
     private MealType mealType;
     
-    @Lob
+   // @Lob
     private String mealImage;
 
     private Double carbs;

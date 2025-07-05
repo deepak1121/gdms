@@ -4,12 +4,15 @@ import com.aiims.gdms.entity.*;
 import com.aiims.gdms.repository.UserRepository;
 import com.aiims.gdms.service.DoctorService;
 import com.aiims.gdms.dto.ApiResponse;
+import com.aiims.gdms.dto.DoctorPatientSymptomRequest;
 import com.aiims.gdms.dto.PatientResponseDto;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -75,17 +78,25 @@ public class DoctorController {
         return ResponseEntity.ok(logs);
     }
 
-    @GetMapping("/patients/{patientId}/symptoms")
-    public ResponseEntity<List<SymptomLog>> getPatientSymptomLogs(@AuthenticationPrincipal UserDetails userDetails,
-                                                                  @PathVariable Long patientId) {
+    @PostMapping("/patient/symptoms")
+    public ResponseEntity<List<SymptomLog>> getDoctorPatientSymptomLogs(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody DoctorPatientSymptomRequest request) {
+
         String username = userDetails.getUsername();
+
         User doctor = userRepository.findByUsername(username)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-        Long doctorId = doctor.getId();
-        
-        List<SymptomLog> logs = doctorService.getPatientSymptomLogs(doctorId, patientId);
+        	    .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Doctor not authenticated"));
+
+        List<SymptomLog> logs = doctorService.getPatientSymptomLogs(
+                doctor.getId(),
+                request.getPatientId(),
+                request.getDate()
+        );
+
         return ResponseEntity.ok(logs);
     }
+
     
     @GetMapping("/patients/{patientId}/all-kick-session")
     public ResponseEntity<List<KickSession>> getPatientKickCountLogs(@AuthenticationPrincipal UserDetails userDetails,

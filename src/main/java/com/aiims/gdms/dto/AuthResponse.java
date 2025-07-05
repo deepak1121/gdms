@@ -6,15 +6,17 @@ public class AuthResponse {
     private String username;
     private String role;
     private String message;
+    private Long Id;
     
     // Constructors
     public AuthResponse() {}
 
     // Constructor with token, username, and role
-    public AuthResponse(String token, String username, String role) {
+    public AuthResponse(String token, String username, String role, Long Id) {
         this.token = token;
         this.username = username;
         this.role = role;
+        this.setId(Id);
     }
 
     // Constructor with message only
@@ -23,11 +25,12 @@ public class AuthResponse {
     }
 
     // Constructor with all fields (message, token, username, role)
-    public AuthResponse(String message, String token, String username, String role) {
+    public AuthResponse(String message, String token, String username, String role, Long Id) {
         this.message = message;
         this.token = token;
         this.username = username;
         this.role = role;
+        this.setId(Id);
     }
 
     // Getters and Setters
@@ -62,4 +65,14 @@ public class AuthResponse {
     public void setMessage(String message) {
         this.message = message;
     }
+
+	public Long getId() {
+		return Id;
+	}
+
+	public void setId(Long id) {
+		Id = id;
+	}
+    
+    
 }

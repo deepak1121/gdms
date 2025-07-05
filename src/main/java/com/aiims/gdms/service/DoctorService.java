@@ -4,8 +4,12 @@ import com.aiims.gdms.entity.*;
 import com.aiims.gdms.repository.*;
 import com.aiims.gdms.dto.PatientResponseDto;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -133,18 +137,27 @@ public class DoctorService {
         return mealLogRepository.findByPatient(patientOpt.get());
     }
     
-    public List<SymptomLog> getPatientSymptomLogs(Long doctorId, Long patientId) {
+    public List<SymptomLog> getPatientSymptomLogs(Long doctorId, Long patientId, LocalDate date) {
         if (!isDoctorAssignedToPatient(doctorId, patientId)) {
-            return List.of();
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Doctor is not assigned to this patient.");
         }
-        
+
         Optional<User> patientOpt = userRepository.findById(patientId);
         if (patientOpt.isEmpty()) {
-            return List.of();
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Patient not found.");
         }
-        
-        return symptomLogRepository.findByPatient(patientOpt.get());
+
+        User patient = patientOpt.get();
+
+        if (date != null) {
+            LocalDateTime startOfDay = date.atStartOfDay();
+            LocalDateTime endOfDay = startOfDay.plusDays(1);
+            return symptomLogRepository.findByPatientAndExactDateRange(patient, startOfDay, endOfDay);
+        } else {
+            return symptomLogRepository.findByPatient(patient);
+        }
     }
+
     
     public List<KickSession> getPatientCompletedKickSessions(Long doctorId, Long patientId) {
         if (!isDoctorAssignedToPatient(doctorId, patientId)) {

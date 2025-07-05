@@ -28,4 +28,16 @@ public interface SymptomLogRepository extends JpaRepository<SymptomLog, Long> {
     
     @Query("SELECT COUNT(s) FROM SymptomLog s WHERE s.patient = :patient AND DATE(s.timestamp) = :date")
     long countByPatientAndDate(@Param("patient") User patient, @Param("date") LocalDate date);
+    
+    
+    @Query("SELECT s FROM SymptomLog s WHERE s.patient = :patient AND s.timestamp >= :startOfDay AND s.timestamp < :endOfDay ORDER BY s.timestamp DESC")
+    List<SymptomLog> findByPatientAndExactDateRange(
+        @Param("patient") User patient,
+        @Param("startOfDay") LocalDateTime startOfDay,
+        @Param("endOfDay") LocalDateTime endOfDay
+    );
+
+    
+    
+    
 } 

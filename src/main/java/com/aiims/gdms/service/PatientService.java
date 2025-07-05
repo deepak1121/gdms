@@ -285,26 +285,29 @@ public class PatientService {
 
 	    // Meal Logs
 	    List<MealLogDto> meals = mealLogRepository.findByPatient(patient)
-	            .stream()
-	            .filter(meal -> isSameDate(meal.getTimestamp(), date))
-	            .map(meal -> new MealLogDto(
-	                    meal.getMealType().name(),
-	                    meal.getMealItems().stream()
-	                            .map(item -> new MealItemDto(
-	                                    item.getCustomMealName() != null ? item.getCustomMealName()
-	                                            : (item.getMealMaster() != null ? item.getMealMaster().getName() : null),
-	                                    item.getQuantity(),
-	                                    item.getUnit(),
-	                                    item.getMealMaster() != null && item.getMealMaster().getMealType() != null
-	                                            ? item.getMealMaster().getMealType().name()
-	                                            : null,
-	                                    item.getMealMaster() != null ? item.getMealMaster().getCarbs() : null,
-	                                    item.getMealMaster() != null && item.getMealMaster().isDoctorRecommended()
-	                            ))
-	                            .collect(Collectors.toList())
-	            ))
-	            .collect(Collectors.toList());
-	    response.setMeals(meals);
+	    	    .stream()
+	    	    .filter(meal -> isSameDate(meal.getTimestamp(), date))
+	    	    .map(meal -> new MealLogDto(
+	    	            meal.getMealType().name(),
+	    	            meal.getMealItems().stream()
+	    	                    .map(item -> new MealItemDto(
+	    	                            item.getCustomMealName() != null ? item.getCustomMealName()
+	    	                                    : (item.getMealMaster() != null ? item.getMealMaster().getName() : null),
+	    	                            item.getQuantity(),
+	    	                            item.getUnit(),
+	    	                            item.getMealMaster() != null && item.getMealMaster().getMealType() != null
+	    	                                    ? item.getMealMaster().getMealType().name()
+	    	                                    : null,
+	    	                            item.getMealMaster() != null ? item.getMealMaster().getCarbs() : null,
+	    	                            item.getMealMaster() != null && item.getMealMaster().isDoctorRecommended(),
+	    	                            item.getMealMaster() != null ? item.getMealMaster().getMealImage() : null  // ✅ Added mealImage
+	    	                    ))
+	    	                    .collect(Collectors.toList())
+	    	    ))
+	    	    .collect(Collectors.toList());
+
+	    	response.setMeals(meals);
+
 
 	    // Glucose Logs
 	    List<GlucoseLogDto> glucoseLogs = glucoseLogRepository.findByPatient(patient)

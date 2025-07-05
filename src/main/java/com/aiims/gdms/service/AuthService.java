@@ -107,7 +107,7 @@ public class AuthService implements UserDetailsService {
 			String token = jwtUtil.generateToken(userDetails);
 
 			User user = userRepository.findByUsername(request.getUsername()).orElse(null);
-			return new AuthResponse("Success", token, user.getUsername(), user.getRole().name());
+			return new AuthResponse("Success", token, user.getUsername(), user.getRole().name(), user.getId());
 		}
 	}
 }
