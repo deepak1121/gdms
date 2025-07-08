@@ -7,16 +7,18 @@ public class AuthResponse {
     private String role;
     private String message;
     private Long Id;
+    private String photoPath;
     
     // Constructors
     public AuthResponse() {}
 
     // Constructor with token, username, and role
-    public AuthResponse(String token, String username, String role, Long Id) {
+    public AuthResponse(String token, String username, String role, Long Id, String photoPath) {
         this.token = token;
         this.username = username;
         this.role = role;
         this.setId(Id);
+        this.photoPath = photoPath;
     }
 
     // Constructor with message only
@@ -25,12 +27,13 @@ public class AuthResponse {
     }
 
     // Constructor with all fields (message, token, username, role)
-    public AuthResponse(String message, String token, String username, String role, Long Id) {
+    public AuthResponse(String message, String token, String username, String role, Long Id, String photoPath) {
         this.message = message;
         this.token = token;
         this.username = username;
         this.role = role;
         this.setId(Id);
+        this.photoPath = photoPath;
     }
 
     // Getters and Setters
@@ -73,6 +76,15 @@ public class AuthResponse {
 	public void setId(Long id) {
 		Id = id;
 	}
+
+	public String getPhotoPath() {
+		return photoPath;
+	}
+
+	public void setPhotoPath(String photoPath) {
+		this.photoPath = photoPath;
+	}
+	
     
     
 }

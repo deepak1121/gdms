@@ -3,8 +3,20 @@ package com.aiims.gdms.controller;
 import com.aiims.gdms.entity.*;
 import com.aiims.gdms.repository.UserRepository;
 import com.aiims.gdms.service.DoctorService;
+
+import jakarta.validation.Valid;
+
+import com.aiims.gdms.dto.AllDoctorPatientLogsResponse;
 import com.aiims.gdms.dto.ApiResponse;
+import com.aiims.gdms.dto.ClinicalNotesRequest;
+import com.aiims.gdms.dto.DoctorPatientFullLogsRequest;
+import com.aiims.gdms.dto.DoctorPatientGlucoseRequest;
+import com.aiims.gdms.dto.DoctorPatientKickSessionDto;
+import com.aiims.gdms.dto.DoctorPatientKickSessionRequest;
+import com.aiims.gdms.dto.DoctorPatientMealRequest;
 import com.aiims.gdms.dto.DoctorPatientSymptomRequest;
+import com.aiims.gdms.dto.GlucoseLogResponse;
+import com.aiims.gdms.dto.MealLogDto;
 import com.aiims.gdms.dto.PatientResponseDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -29,22 +41,28 @@ public class DoctorController {
     
     @PostMapping("/assign-patient/{patientId}")
     public ResponseEntity<ApiResponse<String>> assignPatient(@AuthenticationPrincipal UserDetails userDetails,
-                                               @PathVariable Long patientId) {
+                                                           @PathVariable Long patientId) {
         String username = userDetails.getUsername();
         User doctor = userRepository.findByUsername(username)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> new RuntimeException("Doctor not found. Please check the username"));
+
         try {
             // Find patient username by ID
             User patient = userRepository.findById(patientId)
-                .orElseThrow(() -> new RuntimeException("Patient not found"));
+                .orElseThrow(() -> new RuntimeException("Patient with ID " + patientId + " not found. Please verify the patient ID"));
+
             doctorService.assignPatientToDoctor(doctor.getUsername(), patient.getUsername());
             return ResponseEntity.ok(ApiResponse.success("Patient assigned successfully", null));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Error: " + e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+            // Catch any other unforeseen exception
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error("An unexpected error occurred. Please try again later."));
         }
     }
+
     
-    @GetMapping("/patients")
+    @GetMapping("/find-doctor-patient-mapping")
     public ResponseEntity<List<PatientResponseDto>> getPatients(@AuthenticationPrincipal UserDetails userDetails) {
         String username = userDetails.getUsername();
         User doctor = userRepository.findByUsername(username)
@@ -54,34 +72,53 @@ public class DoctorController {
         return ResponseEntity.ok(patients);
     }
     
-    @GetMapping("/patients/{patientId}/glucose")
-    public ResponseEntity<List<GlucoseLog>> getPatientGlucoseLogs(@AuthenticationPrincipal UserDetails userDetails,
-                                                                  @PathVariable Long patientId) {
+    @PostMapping("/patients/glucose-logs")
+    public ResponseEntity<List<GlucoseLogResponse>> getPatientGlucoseLogs(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody @Valid DoctorPatientGlucoseRequest request) {
+
         String username = userDetails.getUsername();
+
         User doctor = userRepository.findByUsername(username)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-        Long doctorId = doctor.getId();
-        
-        List<GlucoseLog> logs = doctorService.getPatientGlucoseLogs(doctorId, patientId);
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Doctor not authenticated"));
+
+        List<GlucoseLogResponse> logs = doctorService.getPatientGlucoseLogs(
+                doctor.getId(),
+                request.getPatientId(),
+                request.getFromDate(),
+                request.getToDate()
+        );
+
         return ResponseEntity.ok(logs);
+    }
+
+    
+    @PostMapping("/patient/meals")
+    public ResponseEntity<List<MealLogDto>> getDoctorPatientMealLogs(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody @Valid DoctorPatientMealRequest request) {
+
+        String username = userDetails.getUsername();
+
+        User doctor = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Doctor not authenticated"));
+
+        List<MealLogDto> meals = doctorService.getPatientMealLogs(
+                doctor.getId(),
+                request.getPatientId(),
+                request.getFromDate(),
+                request.getToDate()
+        );
+
+        return ResponseEntity.ok(meals);
     }
     
-    @GetMapping("/patients/{patientId}/meals")
-    public ResponseEntity<List<MealLog>> getPatientMealLogs(@AuthenticationPrincipal UserDetails userDetails,
-                                                            @PathVariable Long patientId) {
-        String username = userDetails.getUsername();
-        User doctor = userRepository.findByUsername(username)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-        Long doctorId = doctor.getId();
-        
-        List<MealLog> logs = doctorService.getPatientMealLogs(doctorId, patientId);
-        return ResponseEntity.ok(logs);
-    }
+    
 
     @PostMapping("/patient/symptoms")
     public ResponseEntity<List<SymptomLog>> getDoctorPatientSymptomLogs(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody DoctorPatientSymptomRequest request) {
+            @RequestBody @Valid DoctorPatientSymptomRequest request) {
 
         String username = userDetails.getUsername();
 
@@ -91,23 +128,78 @@ public class DoctorController {
         List<SymptomLog> logs = doctorService.getPatientSymptomLogs(
                 doctor.getId(),
                 request.getPatientId(),
-                request.getDate()
+                request.getFromDate(),
+                request.getToDate()
         );
 
         return ResponseEntity.ok(logs);
     }
 
     
-    @GetMapping("/patients/{patientId}/all-kick-session")
-    public ResponseEntity<List<KickSession>> getPatientKickCountLogs(@AuthenticationPrincipal UserDetails userDetails,
-                                                                      @PathVariable Long patientId,
-                                                                      @RequestParam(required = false) String date) {
+    @PostMapping("/patients/kick-sessions")
+    public ResponseEntity<List<DoctorPatientKickSessionDto>> getKickSessions(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody @Valid DoctorPatientKickSessionRequest request) {
+
         String username = userDetails.getUsername();
         User doctor = userRepository.findByUsername(username)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-        Long doctorId = doctor.getId();
-        
-        List<KickSession> logs = doctorService.getAllKickSessions(doctorId, patientId);
-        return ResponseEntity.ok(logs);
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Doctor not authenticated"));
+
+        List<DoctorPatientKickSessionDto> sessions = doctorService.getKickSessionsForDoctor(
+                doctor.getId(),
+                request.getPatientId(),
+                request.getFromDate(),
+                request.getToDate()
+        );
+
+        return ResponseEntity.ok(sessions);
     }
+    
+    
+    @PostMapping("/patients/all-logs")
+    public ResponseEntity<Object> getAllPatientLogs(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody @Valid  DoctorPatientFullLogsRequest request) {
+
+        String username = userDetails.getUsername();
+        User doctor = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Doctor not authenticated"));
+
+        if (!doctorService.isDoctorAssignedToPatient(doctor.getId(), request.getPatientId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Doctor is not assigned to this patient");
+        }
+
+        User patient = userRepository.findById(request.getPatientId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Patient not found"));
+
+        AllDoctorPatientLogsResponse response = new AllDoctorPatientLogsResponse();
+
+        response.setGlucoseLogs(doctorService.getPatientGlucoseLogs(doctor.getId(), request.getPatientId(), request.getFromDate(), request.getToDate()));
+        response.setMealLogs(doctorService.getPatientMealLogs(doctor.getId(), request.getPatientId(), request.getFromDate(), request.getToDate()));
+        response.setSymptomLogs(doctorService.getPatientSymptomLogs(doctor.getId(), request.getPatientId(), request.getFromDate(), request.getToDate()));
+        response.setKickSessions(doctorService.getKickSessionsForDoctor(doctor.getId(), request.getPatientId(), request.getFromDate(), request.getToDate()));
+
+        return ResponseEntity.ok(response);
+    }
+
+    
+    
+    @PostMapping("/patients/add-clinical-notes")
+    public ResponseEntity<?> addNoteToPatient(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody ClinicalNotesRequest request) {
+
+        String username = userDetails.getUsername();
+        User doctor = userRepository.findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("Doctor not found"));
+
+        doctorService.addClinicalNote(doctor, request);
+        return ResponseEntity.ok("Clinical note added successfully");
+    }
+
+    
+    
+
+
+
 } 

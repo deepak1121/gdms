@@ -28,4 +28,6 @@ public interface MealLogRepository extends JpaRepository<MealLog, Long> {
     long countByPatientAndDate(@Param("patient") User patient, @Param("date") LocalDate date);
 
     List<MealLog> findByPatient(User user);
+    
+    List<MealLog> findByPatientAndTimestampBetweenOrderByTimestampDesc(User patient, LocalDateTime start, LocalDateTime end);
 } 

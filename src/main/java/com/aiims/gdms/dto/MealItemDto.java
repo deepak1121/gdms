@@ -8,7 +8,7 @@ public class MealItemDto {
     private String mealType;
     private Double carbs;
     private boolean doctorRecommended;
-    private String mealImage;  // ✅ New field for meal image
+    private String mealImage; 
 
     public MealItemDto(String name, Double quantity, String unit, String mealType, Double carbs, boolean doctorRecommended, String mealImage) {
         this.name = name;

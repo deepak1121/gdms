@@ -2,23 +2,36 @@ package com.aiims.gdms.dto;
 
 import java.time.LocalDate;
 
+import jakarta.validation.constraints.NotNull;
+
 public class DoctorPatientSymptomRequest {
-    private Long patientId;
-    private LocalDate date; // Optional
+	private Long patientId;
+	@NotNull(message = "fromDate is required")
+	private LocalDate fromDate;
+	private LocalDate toDate;
 
-    public Long getPatientId() {
-        return patientId;
-    }
+	public Long getPatientId() {
+		return patientId;
+	}
 
-    public void setPatientId(Long patientId) {
-        this.patientId = patientId;
-    }
+	public void setPatientId(Long patientId) {
+		this.patientId = patientId;
+	}
 
-    public LocalDate getDate() {
-        return date;
-    }
+	public LocalDate getFromDate() {
+		return fromDate;
+	}
 
-    public void setDate(LocalDate date) {
-        this.date = date;
-    }
+	public void setFromDate(LocalDate fromDate) {
+		this.fromDate = fromDate;
+	}
+
+	public LocalDate getToDate() {
+		return toDate;
+	}
+
+	public void setToDate(LocalDate toDate) {
+		this.toDate = toDate;
+	}
+
 }

@@ -2,6 +2,12 @@ package com.aiims.gdms.service;
 
 import com.aiims.gdms.entity.*;
 import com.aiims.gdms.repository.*;
+import com.aiims.gdms.dto.ClinicalNoteInfo;
+import com.aiims.gdms.dto.ClinicalNotesRequest;
+import com.aiims.gdms.dto.DoctorPatientKickSessionDto;
+import com.aiims.gdms.dto.GlucoseLogResponse;
+import com.aiims.gdms.dto.MealItemDto;
+import com.aiims.gdms.dto.MealLogDto;
 import com.aiims.gdms.dto.PatientResponseDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -37,40 +43,46 @@ public class DoctorService {
     
     @Autowired
     private KickSessionRepository kickSessionRepository;
+    
+    @Autowired
+    private ClinicalNotesRepository clinicalNotesRepository;
 
 
     public void assignPatientToDoctor(String doctorUsername, String patientUsername) {
         User doctor = userRepository.findByUsername(doctorUsername)
-            .orElseThrow(() -> new RuntimeException("Doctor not found"));
+            .orElseThrow(() -> new RuntimeException("Doctor with username " + doctorUsername + " not found"));
+
         User patient = userRepository.findByUsername(patientUsername)
-            .orElseThrow(() -> new RuntimeException("Patient not found"));
+            .orElseThrow(() -> new RuntimeException("Patient with username " + patientUsername + " not found"));
 
         if (doctor.getRole() != User.Role.DOCTOR) {
-            throw new RuntimeException("User is not a doctor");
+            throw new RuntimeException("The user " + doctorUsername + " is not a doctor. Please assign a valid doctor.");
         }
+
         if (patient.getRole() != User.Role.PATIENT) {
-            throw new RuntimeException("User is not a patient");
+            throw new RuntimeException("The user " + patientUsername + " is not a patient. Please assign a valid patient.");
         }
+
         if (mappingRepository.existsByDoctorAndPatientAndActiveTrue(doctor, patient)) {
-            throw new RuntimeException("Mapping already exists");
+            throw new RuntimeException("A mapping already exists between this doctor and patient. Patient is already assigned.");
         }
 
         DoctorPatientMapping mapping = new DoctorPatientMapping(doctor, patient);
         mappingRepository.save(mapping);
     }
+
     
     public List<PatientResponseDto> getDoctorPatientsAsDto(Long doctorId) {
-       
         Optional<User> doctorOpt = userRepository.findById(doctorId);
         if (doctorOpt.isEmpty()) {
             return List.of();
         }
-        if (doctorOpt.get().getRole() != User.Role.DOCTOR) {
+
+        User doctor = doctorOpt.get();
+        if (doctor.getRole() != User.Role.DOCTOR) {
             System.out.println("User is not a doctor.");
             return List.of();
         }
-        User doctor = doctorOpt.get();
-        System.out.println("Doctor found: " + doctor.getUsername());
 
         List<DoctorPatientMapping> mappings = mappingRepository.findByDoctorAndActiveTrue(doctor);
         System.out.println("Found " + mappings.size() + " active patient mappings.");
@@ -81,25 +93,35 @@ public class DoctorService {
                     System.out.println("Mapping found for patient ID: " + patient.getId());
 
                     PatientProfile profile = patientProfileRepository.findByUser(patient)
-                            .orElseThrow(() -> {
-                                return new RuntimeException("Patient not found");
-                            });
+                            .orElseThrow(() -> new RuntimeException("Patient profile not found"));
 
-                    return new PatientResponseDto(
-                    		profile.getId(),
-                            profile.getFirstName(),
-                            profile.getLastName(),
-                            profile.getPhoneNumber(),
-                            profile.getBirthYear(),
-                            profile.getGravida(),
-                            profile.getPara(),
-                            profile.getLivingChildren(),
-                            profile.getAbortions(),
-                            profile.getLastMenstrualPeriod());
+                    // ✅ Fetch clinical notes for this patient by this doctor
+                    List<ClinicalNotes> notesList = clinicalNotesRepository.findByDoctorAndPatientOrderByCreatedAtDesc(doctor, patient);
+                    List<ClinicalNoteInfo> noteInfos = notesList.stream()
+                            .map(note -> new ClinicalNoteInfo(note.getNotes(), note.getCreatedAt()))
+                            .collect(Collectors.toList());
+
+                    // ✅ Build response DTO
+                    PatientResponseDto dto = new PatientResponseDto();
+                    dto.setId(patient.getId());
+                    dto.setUsername(patient.getUsername());
+                    dto.setFirstName(profile.getFirstName());
+                    dto.setLastName(profile.getLastName());
+                    dto.setPhoneNumber(profile.getPhoneNumber());
+                    dto.setBirthYear(profile.getBirthYear());
+                    dto.setGravida(profile.getGravida());
+                    dto.setPara(profile.getPara());
+                    dto.setLivingChildren(profile.getLivingChildren());
+                    dto.setAbortions(profile.getAbortions());
+                    dto.setLastMenstrualPeriod(profile.getLastMenstrualPeriod());
+                    dto.setPhotoPath(profile.getPhotoPath());
+                    dto.setClinicalNotes(noteInfos); // ✅ set notes here
+
+                    return dto;
                 })
                 .collect(Collectors.toList());
     }
-  
+
     public List<DoctorPatientMapping> getDoctorPatients(Long doctorId) {
         Optional<User> doctorOpt = userRepository.findById(doctorId);
         if (doctorOpt.isEmpty() || doctorOpt.get().getRole() != User.Role.DOCTOR) {
@@ -109,54 +131,119 @@ public class DoctorService {
         return mappingRepository.findByDoctorAndActiveTrue(doctorOpt.get());
     }
     
-    public List<GlucoseLog> getPatientGlucoseLogs(Long doctorId, Long patientId) {
+    public List<GlucoseLogResponse> getPatientGlucoseLogs(Long doctorId, Long patientId, LocalDate fromDate, LocalDate toDate) {
         if (!isDoctorAssignedToPatient(doctorId, patientId)) {
-            return List.of();
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Doctor is not assigned to this patient");
         }
-        
-        Optional<User> patientOpt = userRepository.findById(patientId);
-        if (patientOpt.isEmpty()) {
-            return List.of();
+
+        User patient = userRepository.findById(patientId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Patient not found"));
+
+        if (fromDate == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fromDate is required.");
         }
-        
-        return glucoseLogRepository.findByPatient(patientOpt.get());
+
+        LocalDateTime startDateTime = fromDate.atStartOfDay();
+        LocalDateTime endDateTime;
+
+        if (toDate == null) {
+            
+            endDateTime = fromDate.plusDays(1).atStartOfDay().minusNanos(1);
+        } else {
+            endDateTime = toDate.plusDays(1).atStartOfDay().minusNanos(1);
+        }
+
+        List<GlucoseLog> logs = glucoseLogRepository.findByPatientAndTimestampBetween(patient, startDateTime, endDateTime);
+
+        return logs.stream()
+                .map(GlucoseLogResponse::new)
+                .collect(Collectors.toList());
     }
-    
 
-    
-    public List<MealLog> getPatientMealLogs(Long doctorId, Long patientId) {
-        if (!isDoctorAssignedToPatient(doctorId, patientId)) {
-            return List.of();
-        }
 
-        Optional<User> patientOpt = userRepository.findById(patientId);
-        if (patientOpt.isEmpty()) {
-            return List.of();
-        }
 
-        return mealLogRepository.findByPatient(patientOpt.get());
-    }
-    
-    public List<SymptomLog> getPatientSymptomLogs(Long doctorId, Long patientId, LocalDate date) {
+      
+
+    public List<MealLogDto> getPatientMealLogs(Long doctorId, Long patientId, LocalDate fromDate, LocalDate toDate) {
         if (!isDoctorAssignedToPatient(doctorId, patientId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Doctor is not assigned to this patient.");
         }
 
-        Optional<User> patientOpt = userRepository.findById(patientId);
-        if (patientOpt.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Patient not found.");
+        User patient = userRepository.findById(patientId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Patient not found"));
+
+        if (fromDate == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fromDate is required.");
         }
 
-        User patient = patientOpt.get();
+        LocalDateTime startDateTime = fromDate.atStartOfDay();
+        LocalDateTime endDateTime;
 
-        if (date != null) {
-            LocalDateTime startOfDay = date.atStartOfDay();
-            LocalDateTime endOfDay = startOfDay.plusDays(1);
-            return symptomLogRepository.findByPatientAndExactDateRange(patient, startOfDay, endOfDay);
+        if (toDate == null) {
+            // If toDate is not provided, use only fromDate for that day
+            endDateTime = fromDate.plusDays(1).atStartOfDay().minusNanos(1);
         } else {
-            return symptomLogRepository.findByPatient(patient);
+            endDateTime = toDate.plusDays(1).atStartOfDay().minusNanos(1);
         }
+
+        List<MealLog> logs = mealLogRepository.findByPatientAndTimestampBetweenOrderByTimestampDesc(
+                patient, startDateTime, endDateTime
+        );
+
+        return logs.stream()
+                .map(log -> {
+                    List<MealItemDto> mealItems = log.getMealItems().stream()
+                            .map(item -> {
+                                MealMaster master = item.getMealMaster();
+                                String mealType = master != null && master.getMealType() != null ? master.getMealType().name() : null;
+
+                                return new MealItemDto(
+                                        master != null ? master.getName() : item.getCustomMealName(),
+                                        item.getQuantity(),
+                                        item.getUnit(),
+                                        mealType,
+                                        master != null ? master.getCarbs() : null,
+                                        master != null && master.isDoctorRecommended(),
+                                        master != null ? master.getMealImage() : null
+                                );
+                            })
+                            .collect(Collectors.toList());
+
+                    return new MealLogDto(log.getMealType().toString(), mealItems);
+                })
+                .collect(Collectors.toList());
     }
+
+
+
+    
+    public List<SymptomLog> getPatientSymptomLogs(Long doctorId, Long patientId, LocalDate fromDate, LocalDate toDate) {
+        if (!isDoctorAssignedToPatient(doctorId, patientId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Doctor is not assigned to this patient.");
+        }
+
+        User patient = userRepository.findById(patientId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Patient not found."));
+
+        if (fromDate == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fromDate is required.");
+        }
+
+        LocalDateTime startDateTime = fromDate.atStartOfDay();
+        LocalDateTime endDateTime;
+
+        if (toDate == null) {
+            // Only one day — fromDate
+            endDateTime = fromDate.plusDays(1).atStartOfDay().minusNanos(1);
+        } else {
+            // Range from fromDate to toDate
+            endDateTime = toDate.plusDays(1).atStartOfDay().minusNanos(1);
+        }
+
+        return symptomLogRepository.findByPatientAndExactDateRange(patient, startDateTime, endDateTime);
+    }
+
+
 
     
     public List<KickSession> getPatientCompletedKickSessions(Long doctorId, Long patientId) {
@@ -169,22 +256,71 @@ public class DoctorService {
         
         return kickSessionRepository.findByPatientAndCompletedTrueOrderByStartTimeDesc(patient);
     }
+    
+    
+    
 
-    public List<KickSession> getAllKickSessions(Long doctorId, Long patientId) {
-        if (!isDoctorAssignedToPatient(doctorId, patientId))
-         {
-            throw new RuntimeException("Doctor is not assigned to this patient.");
+    public List<DoctorPatientKickSessionDto> getKickSessionsForDoctor(Long doctorId, Long patientId, LocalDate fromDate, LocalDate toDate) {
+
+        if (!isDoctorAssignedToPatient(doctorId, patientId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Doctor is not assigned to this patient");
         }
-        
+
         User patient = userRepository.findById(patientId)
-            .orElseThrow(() -> new RuntimeException("Patient not found"));
-        
-        return kickSessionRepository.findByPatientOrderByStartTimeDesc(patient);
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Patient not found"));
+
+        if (fromDate == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fromDate is required.");
+        }
+
+        LocalDateTime startDateTime = fromDate.atStartOfDay();
+        LocalDateTime endDateTime = (toDate == null)
+                ? fromDate.plusDays(1).atStartOfDay().minusNanos(1)
+                : toDate.plusDays(1).atStartOfDay().minusNanos(1);
+
+        List<KickSession> sessions = kickSessionRepository.findByPatientAndStartTimeBetweenOrderByStartTimeDesc(
+                patient, startDateTime, endDateTime
+        );
+
+        return sessions.stream()
+                .map(DoctorPatientKickSessionDto::new)
+                .toList();
     }
 
     
     
-    private boolean isDoctorAssignedToPatient(Long doctorId, Long patientId) {
+    
+    
+    public void addClinicalNote(User doctor, ClinicalNotesRequest request) {
+        Long patientId = request.getPatientId();
+
+        if (patientId == null) {
+            throw new IllegalArgumentException("Patient ID must not be null.");
+        }
+
+        User patient = userRepository.findById(patientId)
+            .orElseThrow(() -> new RuntimeException("Patient not found"));
+
+        ClinicalNotes note = new ClinicalNotes();
+        note.setDoctor(doctor);
+        note.setPatient(patient);
+        note.setCreatedAt(LocalDateTime.now());
+        note.setNotes(request.getNotes());
+
+        clinicalNotesRepository.save(note);
+    }
+
+    
+    
+    
+    
+
+
+
+
+    
+    
+    public boolean isDoctorAssignedToPatient(Long doctorId, Long patientId) {
         Optional<User> doctorOpt = userRepository.findById(doctorId);
         Optional<User> patientOpt = userRepository.findById(patientId);
         
@@ -194,4 +330,5 @@ public class DoctorService {
         
         return mappingRepository.existsByDoctorAndPatientAndActiveTrue(doctorOpt.get(), patientOpt.get());
     }
+    
 } 

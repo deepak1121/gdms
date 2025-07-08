@@ -1,5 +1,6 @@
 package com.aiims.gdms.service;
 
+import com.aiims.gdms.dto.ClinicalNoteInfo;
 import com.aiims.gdms.dto.GlucoseLogDto;
 import com.aiims.gdms.dto.KickCountLogDto;
 import com.aiims.gdms.dto.MealItemDto;
@@ -50,6 +51,9 @@ public class PatientService {
     
     @Autowired
     private PatientProfileRepository patientProfileRepository;
+    
+    @Autowired
+    private ClinicalNotesRepository clinicalNotesRepository;
 
     public GlucoseLog logGlucose(Long patientId, Double glucoseLevel, GlucoseLog.ReadingType readingType, String notes) {
         Optional<User> patientOpt = userRepository.findById(patientId);
@@ -247,11 +251,20 @@ public class PatientService {
         return kickSessionRepository.findByPatientAndCompletedTrueOrderByStartTimeDesc(patient);
     }
 
-	public PatientResponseDto getPatientDetails(User patient) {
-		PatientProfile profile = patientProfileRepository.findByUser(patient).orElseThrow(() -> new RuntimeException("Patient Details are not fetched"));
-		
-		return new PatientResponseDto(
-				profile.getId(),
+    public PatientResponseDto getPatientDetails(User patient) {
+        PatientProfile profile = patientProfileRepository.findByUser(patient)
+                .orElseThrow(() -> new RuntimeException("Patient Details are not fetched"));
+
+        // Fetch clinical notes for this patient (optional filter by doctor if needed)
+        List<ClinicalNotes> notes = clinicalNotesRepository.findByPatient(patient);
+
+        List<ClinicalNoteInfo> noteInfoList = notes.stream()
+                .map(note -> new ClinicalNoteInfo(note.getNotes(), note.getCreatedAt()))
+                .collect(Collectors.toList());
+
+        return new PatientResponseDto(
+                patient.getId(),
+                patient.getUsername(),
                 profile.getFirstName(),
                 profile.getLastName(),
                 profile.getPhoneNumber(),
@@ -260,10 +273,13 @@ public class PatientService {
                 profile.getPara(),
                 profile.getLivingChildren(),
                 profile.getAbortions(),
-                profile.getLastMenstrualPeriod());
-			
-		
-	}
+                profile.getLastMenstrualPeriod(),
+                profile.getPhotoPath(),
+                noteInfoList // ✅ now you're passing the notes list too
+        );
+    }
+
+
 	
 	
 	

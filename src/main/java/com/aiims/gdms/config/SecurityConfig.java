@@ -46,6 +46,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/patient/**").hasRole("PATIENT")
                 .requestMatchers("/api/doctor/**").hasRole("DOCTOR")
                 .requestMatchers("/MealPhotos/**").permitAll()
+                .requestMatchers("/uploads/**").permitAll()
 
                 .anyRequest().authenticated()
             )

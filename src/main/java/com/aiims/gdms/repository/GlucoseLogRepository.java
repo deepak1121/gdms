@@ -28,4 +28,7 @@ public interface GlucoseLogRepository extends JpaRepository<GlucoseLog, Long> {
     long countByPatientAndDate(@Param("patient") User patient, @Param("date") LocalDate date);
 
     List<GlucoseLog> findByPatient(User user);
+    
+    List<GlucoseLog> findByPatientAndTimestampBetween(User patient, LocalDateTime start, LocalDateTime end);
+
 } 

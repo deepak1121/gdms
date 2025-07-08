@@ -20,5 +20,8 @@ public interface KickSessionRepository extends JpaRepository<KickSession, Long> 
     List<KickSession> findByPatientAndCompletedTrueOrderByStartTimeDesc(User patient);
 
     List<KickSession> findByPatientOrderByStartTimeDesc(User patient);
+    
+    List<KickSession> findByPatientAndStartTimeBetweenOrderByStartTimeDesc(
+            User patient, LocalDateTime start, LocalDateTime end);
 
 } 

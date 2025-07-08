@@ -11,6 +11,15 @@ public class MealLogDto {
         this.mealType = mealType;
         this.mealItems = mealItems;
     }
+    
+    
+
+	public MealLogDto() {
+		super();
+		// TODO Auto-generated constructor stub
+	}
+
+
 
 	public String getMealType() {
 		return mealType;

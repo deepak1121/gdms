@@ -1,6 +1,6 @@
 package com.aiims.gdms.dto;
 
-
+import java.util.List;
 
 public class PatientResponseDto {
 
@@ -15,27 +15,42 @@ public class PatientResponseDto {
     private Integer livingChildren;
     private Integer abortions;
     private Integer lastMenstrualPeriod;
+    private String photoPath;
+    private List<ClinicalNoteInfo> clinicalNotes;
 
 
     // Constructors
-    public PatientResponseDto() {
-    }
+    public PatientResponseDto() {}
+    
+    
+    
 
-    public PatientResponseDto(Long id, String firstName, String lastName, String phoneNumber, Integer birthYear,Integer gravida, Integer para, Integer livingChildren,
-			Integer abortions, Integer lastMenstrualPeriod) {
-        this.id = id;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.phoneNumber = phoneNumber;
-        this.birthYear=birthYear;
-        this.gravida = gravida;
-		this.para = para;
-		this.livingChildren = livingChildren;
-		this.abortions = abortions;
-		this.lastMenstrualPeriod = lastMenstrualPeriod;
-    }
 
-    // Getters and Setters
+    public PatientResponseDto(Long id, String username, String firstName, String lastName, String phoneNumber,
+            Integer birthYear, Integer gravida, Integer para, Integer livingChildren,
+            Integer abortions, Integer lastMenstrualPeriod, String photoPath,
+            List<ClinicalNoteInfo> clinicalNotes) {
+this.id = id;
+this.username = username;
+this.firstName = firstName;
+this.lastName = lastName;
+this.phoneNumber = phoneNumber;
+this.birthYear = birthYear;
+this.gravida = gravida;
+this.para = para;
+this.livingChildren = livingChildren;
+this.abortions = abortions;
+this.lastMenstrualPeriod = lastMenstrualPeriod;
+this.photoPath = photoPath;
+this.clinicalNotes = clinicalNotes;
+}
+
+
+
+
+
+
+	// Getters and Setters
     public Long getId() {
         return id;
     }
@@ -76,56 +91,68 @@ public class PatientResponseDto {
         this.phoneNumber = phoneNumber;
     }
 
-    
-    
-    
     public Integer getBirthYear() {
-		return birthYear;
-	}
+        return birthYear;
+    }
 
-	public void setBirthYear(Integer birthYear) {
-		this.birthYear = birthYear;
-	}
+    public void setBirthYear(Integer birthYear) {
+        this.birthYear = birthYear;
+    }
 
-	public Integer getGravida() {
-		return gravida;
-	}
+    public Integer getGravida() {
+        return gravida;
+    }
 
-	public void setGravida(Integer gravida) {
-		this.gravida = gravida;
-	}
+    public void setGravida(Integer gravida) {
+        this.gravida = gravida;
+    }
 
-	public Integer getPara() {
-		return para;
-	}
+    public Integer getPara() {
+        return para;
+    }
 
-	public void setPara(Integer para) {
-		this.para = para;
-	}
+    public void setPara(Integer para) {
+        this.para = para;
+    }
 
-	public Integer getLivingChildren() {
-		return livingChildren;
-	}
+    public Integer getLivingChildren() {
+        return livingChildren;
+    }
 
-	public void setLivingChildren(Integer livingChildren) {
-		this.livingChildren = livingChildren;
-	}
+    public void setLivingChildren(Integer livingChildren) {
+        this.livingChildren = livingChildren;
+    }
 
-	public Integer getAbortions() {
-		return abortions;
-	}
+    public Integer getAbortions() {
+        return abortions;
+    }
 
-	public void setAbortions(Integer abortions) {
-		this.abortions = abortions;
-	}
+    public void setAbortions(Integer abortions) {
+        this.abortions = abortions;
+    }
 
-	public Integer getLastMenstrualPeriod() {
-		return lastMenstrualPeriod;
-	}
+    public Integer getLastMenstrualPeriod() {
+        return lastMenstrualPeriod;
+    }
 
-	public void setLastMenstrualPeriod(Integer lastMenstrualPeriod) {
-		this.lastMenstrualPeriod = lastMenstrualPeriod;
-	}
+    public void setLastMenstrualPeriod(Integer lastMenstrualPeriod) {
+        this.lastMenstrualPeriod = lastMenstrualPeriod;
+    }
 
+    public String getPhotoPath() {
+        return photoPath;
+    }
 
-} 
+    public void setPhotoPath(String photoPath) {
+        this.photoPath = photoPath;
+    }
+    
+    public List<ClinicalNoteInfo> getClinicalNotes() {
+        return clinicalNotes;
+    }
+
+    public void setClinicalNotes(List<ClinicalNoteInfo> clinicalNotes) {
+        this.clinicalNotes = clinicalNotes;
+    }
+
+}

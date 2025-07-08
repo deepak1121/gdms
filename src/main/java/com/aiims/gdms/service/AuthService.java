@@ -94,20 +94,36 @@ public class AuthService implements UserDetailsService {
     
     
     
-	public AuthResponse login(LoginRequest request) {
-		{
-			try {
-				authenticationManager.authenticate(
-						new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
-			} catch (Exception e) {
-				return new AuthResponse("Invalid username or password");
-			}
+    public AuthResponse login(LoginRequest request) {
 
-			UserDetails userDetails = loadUserByUsername(request.getUsername());
-			String token = jwtUtil.generateToken(userDetails);
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
+        } catch (Exception e) {
+            return new AuthResponse("Invalid username or password");
+        }
 
-			User user = userRepository.findByUsername(request.getUsername()).orElse(null);
-			return new AuthResponse("Success", token, user.getUsername(), user.getRole().name(), user.getId());
-		}
-	}
+        UserDetails userDetails = loadUserByUsername(request.getUsername());
+        String token = jwtUtil.generateToken(userDetails);
+
+        User user = userRepository.findByUsername(request.getUsername()).orElse(null);
+        String photoPath = null;
+
+        if (user != null) {
+            if (user.getRole().name().equalsIgnoreCase("DOCTOR")) {
+                DoctorProfile profile = doctorProfileRepository.findByUser(user).orElse(null);
+                if (profile != null) {
+                    photoPath = profile.getPhotoPath();
+                }
+            } else if (user.getRole().name().equalsIgnoreCase("PATIENT")) {
+                PatientProfile profile = patientProfileRepository.findByUser(user).orElse(null);
+                if (profile != null) {
+                    photoPath = profile.getPhotoPath();
+                }
+            }
+        }
+
+        return new AuthResponse("Success", token, user.getUsername(), user.getRole().name(), user.getId(), photoPath);
+    }
+
 }
