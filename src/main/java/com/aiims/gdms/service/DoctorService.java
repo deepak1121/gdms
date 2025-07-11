@@ -96,9 +96,16 @@ public class DoctorService {
                             .orElseThrow(() -> new RuntimeException("Patient profile not found"));
 
                     // ✅ Fetch clinical notes for this patient by this doctor
-                    List<ClinicalNotes> notesList = clinicalNotesRepository.findByDoctorAndPatientOrderByCreatedAtDesc(doctor, patient);
+                    List<ClinicalNotes> notesList = clinicalNotesRepository
+                            .findByDoctorAndPatientOrderByCreatedAtDesc(doctor, patient);
+
                     List<ClinicalNoteInfo> noteInfos = notesList.stream()
-                            .map(note -> new ClinicalNoteInfo(note.getNotes(), note.getCreatedAt()))
+                            .map(note -> new ClinicalNoteInfo(
+                                    note.getNotes(),
+                                    note.getCreatedAt(),
+                                   
+                                    doctor.getUsername() // doctor username
+                            ))
                             .collect(Collectors.toList());
 
                     // ✅ Build response DTO
@@ -115,7 +122,7 @@ public class DoctorService {
                     dto.setAbortions(profile.getAbortions());
                     dto.setLastMenstrualPeriod(profile.getLastMenstrualPeriod());
                     dto.setPhotoPath(profile.getPhotoPath());
-                    dto.setClinicalNotes(noteInfos); // ✅ set notes here
+                    dto.setClinicalNotes(noteInfos); // ✅ add note list
 
                     return dto;
                 })

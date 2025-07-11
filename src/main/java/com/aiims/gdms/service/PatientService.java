@@ -259,7 +259,7 @@ public class PatientService {
         List<ClinicalNotes> notes = clinicalNotesRepository.findByPatient(patient);
 
         List<ClinicalNoteInfo> noteInfoList = notes.stream()
-                .map(note -> new ClinicalNoteInfo(note.getNotes(), note.getCreatedAt()))
+                .map(note -> new ClinicalNoteInfo(note.getNotes(), note.getCreatedAt(), note.getDoctor().getUsername()))
                 .collect(Collectors.toList());
 
         return new PatientResponseDto(
@@ -275,7 +275,7 @@ public class PatientService {
                 profile.getAbortions(),
                 profile.getLastMenstrualPeriod(),
                 profile.getPhotoPath(),
-                noteInfoList // ✅ now you're passing the notes list too
+                noteInfoList 
         );
     }
 
@@ -355,9 +355,9 @@ public class PatientService {
 	
 	private boolean isSameDate(LocalDateTime timestamp, String date) {
 	    if (date == null || date.isBlank()) {
-	        return true; // If no date provided, include all logs
+	        return true;
 	    }
-	    date = date.trim(); // Remove trailing spaces or line breaks
+	    date = date.trim();
 	    LocalDate targetDate = LocalDate.parse(date);
 	    return timestamp.toLocalDate().isEqual(targetDate);
 	}
